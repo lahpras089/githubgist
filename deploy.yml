@@ -4,6 +4,7 @@
   become: yes
 
   tasks:
+
     - name: Login to DockerHub
       community.docker.docker_login:
         username: "{{ docker_username }}"
@@ -21,4 +22,15 @@
         state: started
         restart_policy: always
         ports:
-          - "80:5000"
+          - "8080:8080"
+
+    - name: Test application
+      ansible.builtin.uri:
+        url: http://localhost:8080/octocat
+        method: GET
+        status_code: 200
+        timeout: 10
+
+    - name: Application test successful
+      ansible.builtin.debug:
+        msg: "GitHub Gists API is working successfully"
