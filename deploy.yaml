@@ -1,0 +1,24 @@
+---
+- name: Deploy application
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Login to DockerHub
+      community.docker.docker_login:
+        username: "{{ docker_username }}"
+        password: "{{ docker_password }}"
+
+    - name: Pull latest Docker image
+      community.docker.docker_image:
+        name: "{{ docker_image }}"
+        source: pull
+
+    - name: Run container
+      community.docker.docker_container:
+        name: my-app
+        image: "{{ docker_image }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "80:5000"
