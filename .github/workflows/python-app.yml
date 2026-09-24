@@ -4,19 +4,20 @@ on:
   push:
     branches:
       - main
-      
+
 jobs:
-  build:  
+  build:
     runs-on: ubuntu-latest
 
     steps:
+
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.8'
+        python-version: '3.12'
 
     - name: Install dependencies
       run: |
@@ -24,30 +25,31 @@ jobs:
         pip install -r requirements.txt
         pip install pytest
 
-    - name: Start Python Server
-      run: |
-        python app.py &
-        sleep 5
-
     - name: Run Tests
-      run: pytest
+      run: |
+        python -m pytest -v
 
     - name: Build Docker image
       run: |
         docker build -t my-app:latest .
 
     - name: Login to DockerHub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | \
+        docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
     - name: Tag image
-      run: docker tag my-app:latest ${{ secrets.DOCKER_USERNAME }}/my-app:latest
+      run: |
+        docker tag my-app:latest \
+        ${{ secrets.DOCKER_USERNAME }}/my-app:latest
 
     - name: Push image
-      run: docker push ${{ secrets.DOCKER_USERNAME }}/my-app:latest
-      
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/my-app:latest
+
     - name: Deploy to production
       run: |
         ansible-playbook -i inventory/production deploy.yml \
-        --extra-vars "docker_image=${{ secrets.DOCKER_USERNAME }}/my-app:latest \
-        docker_username=${{ secrets.DOCKER_USERNAME }} \
-        docker_password=${{ secrets.DOCKER_PASSWORD }}"
+          --extra-vars "docker_image=${{ secrets.DOCKER_USERNAME }}/my-app:latest \
+          docker_username=${{ secrets.DOCK_USERNAME }} \
+          docker_password=${{ secrets.DOCKER_PASSWORD }}"
