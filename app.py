@@ -1,22 +1,27 @@
-from flask import Flask, jsonify
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
-
-app = Flask(__name__)
-
-
-@app.route("/<username>")
-def get_gists(username):
-
-    url = f"https://api.github.com/users/{username}/gists"
-
-    response = requests.get(url)
-
-    if response.status_code == 404:
-        return jsonify({"error": "User not found"}), 404
-
-    gists = response.json()
-
-    return jsonify(gists)
+import json
 
 
-app.run(host="0.0.0.0", port=8080)
+class Server(BaseHTTPRequestHandler):
+
+    def do_GET(self):
+
+        username = self.path.strip("/")
+
+        url = f"https://api.github.com/users/{username}/gists"
+
+        response = requests.get(url, timeout=10)
+
+        self.send_response(response.status_code)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+
+        self.wfile.write(response.content)
+
+
+server = HTTPServer(("0.0.0.0", 8080), Server)
+
+print("Server running on port 8080")
+
+server.serve_forever()
