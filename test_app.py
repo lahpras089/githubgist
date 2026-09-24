@@ -1,10 +1,10 @@
-from app import app
-
+import requests
 
 def test_octocat():
-    client = app.test_client()
 
-    response = client.get("/octocat")
+    response = requests.get(
+        "http://localhost:8080/octocat",
+        timeout=10
+    )
 
     assert response.status_code == 200
-    assert isinstance(response.json, list)

@@ -1,6 +1,5 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
-import json
 
 
 class Server(BaseHTTPRequestHandler):
@@ -20,8 +19,9 @@ class Server(BaseHTTPRequestHandler):
         self.wfile.write(response.content)
 
 
-server = HTTPServer(("0.0.0.0", 8080), Server)
+if __name__ == "__main__":
+    server = HTTPServer(("0.0.0.0", 8080), Server)
 
-print("Server running on port 8080")
+    print("Server running on port 8080")
 
-server.serve_forever()
+    server.serve_forever()
