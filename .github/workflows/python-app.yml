@@ -3,7 +3,7 @@ name: Trigger pipeline on push to main branch
 on:
   push:
     branches:
-      - solution
+      - main
       
 jobs:
   build:  
