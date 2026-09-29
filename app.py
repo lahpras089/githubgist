@@ -49,8 +49,8 @@ class Server(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    server = HTTPServer(("0.0.0.0", 8080), Server)
+    server = HTTPServer(("0.0.0.0", 8090), Server)
 
-    print("Server running on port 8080")
+    print("Server running on port 8090")
 
     server.serve_forever()
