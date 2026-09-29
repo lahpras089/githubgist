@@ -1,14 +1,14 @@
-import json
+import requests
+import threading
 from unittest.mock import patch
-from http.client import HTTPConnection
+from http.server import HTTPServer
 
 from app import Server
-from http.server import HTTPServer
-import threading
 
 
 def start_server():
-    server = HTTPServer(("localhost", 8090), Server)
+    # 0 = automatically choose a free port
+    server = HTTPServer(("localhost", 0), Server)
 
     thread = threading.Thread(
         target=server.serve_forever,
@@ -20,6 +20,18 @@ def start_server():
     return server
 
 
+def make_request(server, path):
+    # Get the port selected by the operating system
+    port = server.server_address[1]
+
+    response = requests.get(
+        f"http://localhost:{port}{path}",
+        timeout=10
+    )
+
+    return response
+
+
 @patch("app.requests.get")
 def test_valid_user(mock_get):
 
@@ -28,15 +40,13 @@ def test_valid_user(mock_get):
 
     server = start_server()
 
-    connection = HTTPConnection("localhost", 8090)
-    connection.request("GET", "/octocat")
+    response = make_request(server, "/octocat")
 
-    response = connection.getresponse()
-
-    assert response.status == 200
-    assert json.loads(response.read()) == [{"id": "123"}]
+    assert response.status_code == 200
+    assert response.json() == [{"id": "123"}]
 
     server.shutdown()
+    server.server_close()
 
 
 @patch("app.requests.get")
@@ -47,28 +57,24 @@ def test_user_not_found(mock_get):
 
     server = start_server()
 
-    connection = HTTPConnection("localhost", 8090)
-    connection.request("GET", "/unknown-user")
+    response = make_request(server, "/unknown-user")
 
-    response = connection.getresponse()
-
-    assert response.status == 404
+    assert response.status_code == 404
 
     server.shutdown()
+    server.server_close()
 
 
 def test_empty_username():
 
     server = start_server()
 
-    connection = HTTPConnection("localhost", 8090)
-    connection.request("GET", "/")
+    response = make_request(server, "/")
 
-    response = connection.getresponse()
-
-    assert response.status == 400
+    assert response.status_code == 400
 
     server.shutdown()
+    server.server_close()
 
 
 @patch("app.requests.get")
@@ -79,30 +85,24 @@ def test_github_rate_limit(mock_get):
 
     server = start_server()
 
-    connection = HTTPConnection("localhost", 8090)
-    connection.request("GET", "/octocat")
+    response = make_request(server, "/octocat")
 
-    response = connection.getresponse()
-
-    assert response.status == 403
+    assert response.status_code == 403
 
     server.shutdown()
+    server.server_close()
 
 
 @patch("app.requests.get")
 def test_github_timeout(mock_get):
 
-    import requests
-
     mock_get.side_effect = requests.Timeout()
 
     server = start_server()
 
-    connection = HTTPConnection("localhost", 8090)
-    connection.request("GET", "/octocat")
+    response = make_request(server, "/octocat")
 
-    response = connection.getresponse()
-
-    assert response.status == 502
+    assert response.status_code == 502
 
     server.shutdown()
+    server.server_close()

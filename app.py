@@ -19,6 +19,7 @@ class Server(BaseHTTPRequestHandler):
         url = f"https://api.github.com/users/{username}/gists"
 
         try:
+            # Timeout prevents the application from waiting forever
             response = requests.get(url, timeout=10)
 
         except requests.RequestException:
@@ -34,7 +35,7 @@ class Server(BaseHTTPRequestHandler):
             self.wfile.write(b"User not found")
             return
 
-        # Other GitHub errors
+        # Return other GitHub errors as they are
         if response.status_code != 200:
             self.send_response(response.status_code)
             self.end_headers()
@@ -49,8 +50,9 @@ class Server(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    server = HTTPServer(("0.0.0.0", 8090), Server)
+    # Application runs on port 8080
+    server = HTTPServer(("0.0.0.0", 8080), Server)
 
-    print("Server running on port 8090")
+    print("Server running on port 8080")
 
     server.serve_forever()
