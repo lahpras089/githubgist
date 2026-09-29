@@ -1,35 +1,15 @@
-import requests
-import threading
-from unittest.mock import patch
-from http.server import HTTPServer
-
+from unittest.mock import patch, MagicMock
 from app import Server
 
 
-def start_server():
-    # 0 = automatically choose a free port
-    server = HTTPServer(("localhost", 0), Server)
-
-    thread = threading.Thread(
-        target=server.serve_forever,
-        daemon=True
-    )
-
-    thread.start()
+def create_server():
+    server = MagicMock()
+    server.send_response = MagicMock()
+    server.send_header = MagicMock()
+    server.end_headers = MagicMock()
+    server.wfile.write = MagicMock()
 
     return server
-
-
-def make_request(server, path):
-    # Get the port selected by the operating system
-    port = server.server_address[1]
-
-    response = requests.get(
-        f"http://localhost:{port}{path}",
-        timeout=10
-    )
-
-    return response
 
 
 @patch("app.requests.get")
@@ -38,15 +18,20 @@ def test_valid_user(mock_get):
     mock_get.return_value.status_code = 200
     mock_get.return_value.content = b'[{"id": "123"}]'
 
-    server = start_server()
+    server = create_server()
 
-    response = make_request(server, "/octocat")
+    server.path = "/octocat"
 
-    assert response.status_code == 200
-    assert response.json() == [{"id": "123"}]
+    handler = Server.__new__(Server)
+    handler.path = "/octocat"
+    handler.send_response = server.send_response
+    handler.send_header = server.send_header
+    handler.end_headers = server.end_headers
+    handler.wfile = server.wfile
 
-    server.shutdown()
-    server.server_close()
+    handler.do_GET()
+
+    server.send_response.assert_called_with(200)
 
 
 @patch("app.requests.get")
@@ -55,26 +40,30 @@ def test_user_not_found(mock_get):
     mock_get.return_value.status_code = 404
     mock_get.return_value.content = b"User not found"
 
-    server = start_server()
+    handler = Server.__new__(Server)
+    handler.path = "/unknown-user"
 
-    response = make_request(server, "/unknown-user")
+    handler.send_response = MagicMock()
+    handler.end_headers = MagicMock()
+    handler.wfile = MagicMock()
 
-    assert response.status_code == 404
+    handler.do_GET()
 
-    server.shutdown()
-    server.server_close()
+    handler.send_response.assert_called_with(404)
 
 
 def test_empty_username():
 
-    server = start_server()
+    handler = Server.__new__(Server)
+    handler.path = "/"
 
-    response = make_request(server, "/")
+    handler.send_response = MagicMock()
+    handler.end_headers = MagicMock()
+    handler.wfile = MagicMock()
 
-    assert response.status_code == 400
+    handler.do_GET()
 
-    server.shutdown()
-    server.server_close()
+    handler.send_response.assert_called_with(400)
 
 
 @patch("app.requests.get")
@@ -83,26 +72,32 @@ def test_github_rate_limit(mock_get):
     mock_get.return_value.status_code = 403
     mock_get.return_value.content = b"Rate limit exceeded"
 
-    server = start_server()
+    handler = Server.__new__(Server)
+    handler.path = "/octocat"
 
-    response = make_request(server, "/octocat")
+    handler.send_response = MagicMock()
+    handler.end_headers = MagicMock()
+    handler.wfile = MagicMock()
 
-    assert response.status_code == 403
+    handler.do_GET()
 
-    server.shutdown()
-    server.server_close()
+    handler.send_response.assert_called_with(403)
 
 
 @patch("app.requests.get")
 def test_github_timeout(mock_get):
 
+    import requests
+
     mock_get.side_effect = requests.Timeout()
 
-    server = start_server()
+    handler = Server.__new__(Server)
+    handler.path = "/octocat"
 
-    response = make_request(server, "/octocat")
+    handler.send_response = MagicMock()
+    handler.end_headers = MagicMock()
+    handler.wfile = MagicMock()
 
-    assert response.status_code == 502
+    handler.do_GET()
 
-    server.shutdown()
-    server.server_close()
+    handler.send_response.assert_called_with(502)

@@ -13,6 +13,6 @@ RUN useradd -m appuser
 
 USER appuser
 
-EXPOSE 8090
+EXPOSE 8080
 
 CMD ["python", "app.py"]
