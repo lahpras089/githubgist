@@ -22,11 +22,11 @@
         state: started
         restart_policy: always
         ports:
-          - "8090:8090"
+          - "8080:8080"
 
     - name: Test application
       ansible.builtin.uri:
-        url: http://localhost:8090/octocat
+        url: http://localhost:8080/octocat
         method: GET
         status_code: 200
         timeout: 10
