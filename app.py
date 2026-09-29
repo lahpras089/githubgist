@@ -6,16 +6,45 @@ class Server(BaseHTTPRequestHandler):
 
     def do_GET(self):
 
+        # Check URL
         username = self.path.strip("/")
 
+        if not username:
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(b"Username is required")
+            return
+
+        # Call GitHub API
         url = f"https://api.github.com/users/{username}/gists"
 
-        response = requests.get(url, timeout=10)
+        try:
+            response = requests.get(url, timeout=10)
 
-        self.send_response(response.status_code)
-        self.send_header("Content-type", "application/json")
+        except requests.RequestException:
+            self.send_response(502)
+            self.end_headers()
+            self.wfile.write(b"GitHub API unavailable")
+            return
+
+        # GitHub user not found
+        if response.status_code == 404:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"User not found")
+            return
+
+        # Other GitHub errors
+        if response.status_code != 200:
+            self.send_response(response.status_code)
+            self.end_headers()
+            self.wfile.write(response.content)
+            return
+
+        # Success
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
         self.end_headers()
-
         self.wfile.write(response.content)
 
 
